@@ -121,6 +121,33 @@ caret::confusionMatrix(testing_set[,22],as.factor(y_pred_rf))
 
 plot(classifier_rf)
 
+#Naive Bayes 
+library(e1071)
+classifier_naive=naiveBayes(x=training_set[-22],
+                      y=training_set$default.payment.next.month)
+
+y_pred_naive=predict(classifier_naive,newdata=testing_set[,-22])
+
+caret::confusionMatrix(testing_set[,22],as.factor(y_pred_naive))
+#0.6862
+
+
+# training_set=training_set[-c(10:21)]
+# testing_set=testing_set[-c(10:21)]
+
+#Decision Trees 
+library(rpart)
+classifier_rpart=rpart(formula=default.payment.next.month ~.,
+                       data=training_set)
+
+y_pred_rpart=predict(classifier_rpart,newdata=testing_set[,-22],type='class')
+
+caret::confusionMatrix(testing_set[,22],as.factor(y_pred_rpart))
+#0.8185
+
+#Plotting the decision tree
+plot(classifier_rpart,margin = 0.2)
+text(classifier_rpart)
 
 
 
