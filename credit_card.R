@@ -26,6 +26,8 @@ testing_set=subset(dataset,split==FALSE)
 training_set[,c(1,10:21)]=scale(training_set[,c(1,10:21)])
 testing_set[,c(1,10:21)]=scale(testing_set[,c(1,10:21)])
 
+#-----------------------------------------------------------------------------------
+
 #Fitting logistic regression to the training set
 classifier=glm(formula=default.payment.next.month ~.,
                family = binomial,
@@ -39,37 +41,19 @@ pro_pred=predict(classifier,
                  newdata = testing_set[-22])
 y_pred= ifelse(pro_pred>0.5,1,0)
 
-#Training set
-pro_pred_train=predict(classifier,
-                       type='response',
-                       newdata = training_set[-22])
-
-y_pred_train=ifelse(pro_pred_train>0.5,1,0)
-
 #Confusion Matrix
 library(caret)
-#training Set
-caret::confusionMatrix(training_set[,22],as.factor(y_pred_train))
-
-#testing set
 caret::confusionMatrix(testing_set[,22],as.factor(y_pred))
 #0.8148
 
 #Roc Curve for the logistic regression
-#install.packages('InformationValue')
 library(InformationValue)
 plotROC(actuals = testing_set$default.payment.next.month, 
         predictedScores = pro_pred,
         returnSensitivityMat = TRUE)
 
-# set.seed(123)
-# ctrl=trainControl(method = "cv",number=3)
-# fit=train(x=training_set[,-22],
-#           y=training_set[,22],
-#              method="glm",
-#              trcontrol=ctrl,
-#              tuneLength=5)
 
+#-----------------------------------------------------------------------------------
 
 #K-NN Neighbour 
 library(class)
@@ -78,19 +62,13 @@ y_pred_knn=knn(train=training_set[,-22],
                cl=training_set[,22],
                k=50)
 
-#testing set
+#Testing Set
 caret::confusionMatrix(testing_set[,22],as.factor(y_pred_knn))
 #0.8133
 
-# #Lets find the best k value by using cross validation method
-# set.seed(123)
-# ctrl=trainControl(method = "cv",number=3)
-# knnfit=train(default.payment.next.month ~.,
-#              data=training_set,
-#              method="knn",
-#              trcontrol=ctrl,
-#              tuneLength=5)
-# plot(knnfit)
+
+
+#-----------------------------------------------------------------------------------
 
 #Svm Model
 library(e1071)
@@ -106,8 +84,28 @@ caret::confusionMatrix(training_set[,22],as.factor(y_pred_svm_train))
 #Testing Set
 y_pred_svm=predict(classifier_svm,newdata=testing_set[,-22])
 
-caret::confusionMatrix(testing_set[,22],as.factor(y_pred_svm))
+cm=caret::confusionMatrix(testing_set[,22],as.factor(y_pred_svm))
 #0.8183
+
+library(caret)
+folds = createFolds(training_set$default.payment.next.month, k = 10)
+cv = lapply(folds, function(x) {
+  training_fold = training_set[-x, ]
+  test_fold = training_set[x, ]
+  classifier = svm(formula = default.payment.next.month ~ .,
+                   data = training_fold,
+                   type = 'C-classification',
+                   kernel = 'radial')
+  y_pred = predict(classifier, newdata = test_fold[-22])
+  cm = table(test_fold[, 22], y_pred)
+  accuracy = (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[2,2] + cm[1,2] + cm[2,1])
+  return(accuracy)
+})
+
+accuracy=mean(as.numeric(cv))
+#0.8183334
+
+#-----------------------------------------------------------------------------------
 
 #Random Forest Model
 library(randomForest)
@@ -121,6 +119,26 @@ caret::confusionMatrix(testing_set[,22],as.factor(y_pred_rf))
 
 plot(classifier_rf)
 
+#K-Fold Cross validatation
+library(caret)
+folds = createFolds(training_set$default.payment.next.month, k = 10)
+cv_rf = lapply(folds, function(x) {
+  training_fold = training_set[-x, ]
+  test_fold = training_set[x, ]
+  classifier_rf=randomForest(default.payment.next.month ~.,
+                             data=training_set)
+  
+  y_pred = predict(classifier_rf, newdata = test_fold[-22])
+  cm = table(test_fold[, 22], y_pred)
+  accuracy = (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[2,2] + cm[1,2] + cm[2,1])
+  return(accuracy)
+})
+sum(as.numeric(cv_rf))
+
+accuracy_rf=mean(as.numeric(cv_rf))
+# 0.9890001
+
+#-----------------------------------------------------------------------------------
 #Naive Bayes 
 library(e1071)
 classifier_naive=naiveBayes(x=training_set[-22],
@@ -131,9 +149,7 @@ y_pred_naive=predict(classifier_naive,newdata=testing_set[,-22])
 caret::confusionMatrix(testing_set[,22],as.factor(y_pred_naive))
 #0.6862
 
-
-# training_set=training_set[-c(10:21)]
-# testing_set=testing_set[-c(10:21)]
+#-----------------------------------------------------------------------------------
 
 #Decision Trees 
 library(rpart)
@@ -149,5 +165,5 @@ caret::confusionMatrix(testing_set[,22],as.factor(y_pred_rpart))
 plot(classifier_rpart,margin = 0.2)
 text(classifier_rpart)
 
-
+#------------------------------------------------------------------------------------
 
