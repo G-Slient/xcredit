@@ -52,6 +52,23 @@ plotROC(actuals = testing_set$default.payment.next.month,
         predictedScores = pro_pred,
         returnSensitivityMat = TRUE)
 
+classifier_logi=train(form= default.payment.next.month~.,
+                        data=training_set,
+                        method='regLogistic')
+
+#Predicting the test_set results 
+y_pred_logi=predict.train(classifier_logi,
+                 type='raw',
+                 newdata = testing_set[-22])
+
+caret::confusionMatrix(testing_set[,22],as.factor(y_pred_logi))
+#0.8143
+
+# save the model to disk
+#saveRDS(classifier_logi, "./final_model.rds")
+
+# load the model
+#super_model <- readRDS("./final_model.rds")
 
 #-----------------------------------------------------------------------------------
 
@@ -105,6 +122,12 @@ cv = lapply(folds, function(x) {
 accuracy=mean(as.numeric(cv))
 #0.8183334
 
+#Grid Search for svm model
+
+classifier_svm_hy=train(form= default.payment.next.month~.,
+                        data=training_set,
+                        method='svmRadial')
+
 #-----------------------------------------------------------------------------------
 
 #Random Forest Model
@@ -137,6 +160,7 @@ sum(as.numeric(cv_rf))
 
 accuracy_rf=mean(as.numeric(cv_rf))
 # 0.9890001
+
 
 #-----------------------------------------------------------------------------------
 #Naive Bayes 
