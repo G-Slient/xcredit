@@ -83,6 +83,14 @@ y_pred_knn=knn(train=training_set[,-22],
 caret::confusionMatrix(testing_set[,22],as.factor(y_pred_knn))
 #0.8133
 
+classifier_knn=train(form= default.payment.next.month~.,
+                     data=training_set,
+                     method='knn')
+
+y_pred_knn_1=predict.train(classifier_knn,newdata = testing_set[-22])
+
+caret::confusionMatrix(testing_set[,22],as.factor(y_pred_knn_1))
+
 
 
 #-----------------------------------------------------------------------------------
@@ -128,6 +136,18 @@ classifier_svm_hy=train(form= default.payment.next.month~.,
                         data=training_set,
                         method='svmRadial')
 
+#Grid search with 10- fold cross validation
+set.seed(123)
+ctrl=trainControl(method = "cv",number=10)
+fit=train(x=training_set[,-22],
+          y=as.factor(training_set[,22]),
+          method="svmRadial",
+          trControl=ctrl)
+
+y_pred_2=predict.train(fit,newdata = testing_set[,-22])
+
+caret::confusionMatrix(as.factor(testing_set[,22]),as.factor(y_pred_2))
+#0.8163
 #-----------------------------------------------------------------------------------
 
 #Random Forest Model
@@ -148,6 +168,7 @@ folds = createFolds(training_set$default.payment.next.month, k = 10)
 cv_rf = lapply(folds, function(x) {
   training_fold = training_set[-x, ]
   test_fold = training_set[x, ]
+  
   classifier_rf=randomForest(default.payment.next.month ~.,
                              data=training_set)
   
